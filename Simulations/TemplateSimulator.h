@@ -23,6 +23,8 @@ public:
 	void drawMovableTeapot();
 	void drawTriangle();
 
+
+
 private:
 	// Attributes
 	Vec3  m_vfMovableObjectPos;
