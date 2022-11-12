@@ -62,9 +62,13 @@ public:
 	float PointDistance(Vec3 a, Vec3 b);
 
 	void ApplyForce(Spring s, Vec3 F);
+	void ApplyGravity();
+	void GroundCheck();
 
 	void eulerIntegratePositions(float timeStep);
 	void eulerIntegrateVelocity(float timeStep);
+
+	void midpointIntegrate(float timeStep);
 
 	//void midpointIntegratePositions(float timeStep);
 	//void midpointIntegrateVelocity(float timeStep);
@@ -80,8 +84,14 @@ private:
 	float m_fStiffness;
 	float m_fDamping;
 	int m_iIntegrator;
+
+	bool m_iGravity;
+	bool m_iGround;
+
 	vector<Masspoint> masspoints;
 	vector<Spring> springs;
+
+	bool first;
 
 	// UI Attributes
 	Vec3 m_externalForce;

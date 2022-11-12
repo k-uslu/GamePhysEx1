@@ -6,6 +6,10 @@ MassSpringSystemSimulator::MassSpringSystemSimulator() {
 	m_fStiffness = 0;
 	m_fDamping = 0;
 	m_iIntegrator = 0;
+	m_iGravity=false;
+	m_iGround=false;
+
+	first = true;
 
 	m_vfMovableObjectPos = Vec3();
 	m_vfMovableObjectFinalPos = Vec3();
@@ -37,6 +41,7 @@ int MassSpringSystemSimulator::addMassPoint(Vec3 position, Vec3 Velocity, bool i
 	m.mp_position = position;
 	m.mp_velocity = Velocity;
 	m.mp_isFixed = isFixed;
+	m.mp_mass = m_fMass;
 
 	masspoints.push_back(m);
 	return 0; // Why return int?
@@ -85,7 +90,7 @@ void MassSpringSystemSimulator::applyExternalForce(Vec3 force)
 // ----------------------- UI Functions ----------------------- //
 
 const char* MassSpringSystemSimulator::getTestCasesStr() {
-	return "Empty, 1.1-Points, Complex";
+	return "Empty, 1.1-Points, Complex, Objects";
 }
 
 void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
@@ -95,14 +100,22 @@ void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
 	{
 	case 0:break;
 	case 1:
+		TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
+		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP, &m_iGravity, "");
+		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
+		setMass(10);
+		setStiffness(40);
 		addMassPoint(Vec3(0, 0, 0), Vec3(-1, 0, 0), false);
 		addMassPoint(Vec3(0, 2, 0), Vec3(1, 0, 0), false);
 		addSpring(0, 1, 1);
-		setMass(10);
-		setStiffness(40);
+		
 		break;
 	case 2:
-		TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "0/1");
+		TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
+		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP , &m_iGravity, "");
+		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
+		setMass(10);
+		setStiffness(40);
 		addMassPoint(Vec3(0, 1, 0), Vec3(0, -1, 0), false); //0
 		addMassPoint(Vec3(1, 1, 0), Vec3(0, -1, 0), false); //1
 		addMassPoint(Vec3(1.5, 1, 1), Vec3(0, -1, 0), false); //2
@@ -128,9 +141,29 @@ void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
 		addSpring(2, 7, 2);
 		addSpring(3, 8, 2);
 		addSpring(4, 9, 2);
+		
+		break;
+	case 3:
+		TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
+		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP, &m_iGravity, "");
+		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
 		setMass(10);
 		setStiffness(40);
-		break;
+
+		addMassPoint(Vec3(0, 0, 0), Vec3(0, 0, 0), false); //0
+		addMassPoint(Vec3(0, 0, 1), Vec3(0, 0, 0), false); //1
+		addMassPoint(Vec3(1, 0, 1), Vec3(0, 0, 0), false); //2
+		addMassPoint(Vec3(1, 0, 0), Vec3(0, 0, 0), false); //3
+		addMassPoint(Vec3(0.5, 2 , 0.5), Vec3(0, 1, 0), false); //4
+		addSpring(0, 1, 2);
+		addSpring(1, 2, 2);
+		addSpring(2, 3, 2);
+		addSpring(3, 0, 2);
+		addSpring(4, 3, 2);
+		addSpring(4, 2, 2);
+		addSpring(4, 1, 2);
+		addSpring(4, 0, 2);
+		
 	default:break;
 	}
 }
@@ -139,6 +172,8 @@ void MassSpringSystemSimulator::reset() {
 	m_mouse.x = m_mouse.y = 0;
 	m_trackmouse.x = m_trackmouse.y = 0;
 	m_oldtrackmouse.x = m_oldtrackmouse.y = 0;
+	masspoints.clear();
+	springs.clear();
 }
 
 void MassSpringSystemSimulator::drawFrame(ID3D11DeviceContext* pd3dImmediateContext)
@@ -213,19 +248,50 @@ void MassSpringSystemSimulator::simulateTimestep(float timeStep)
 			ApplyForce(s,F);
 			springs.at(i) = s;
 		}
+		if (m_iGravity) {
+			ApplyGravity();
+		}
 		eulerIntegratePositions(timeStep);
 		eulerIntegrateVelocity(timeStep);
+
 		
+		if (m_iGround) {
+			GroundCheck();
+		}
+
+
+
+		if (first && m_iTestCase == 1) {
+			cout << "System after first timestep " << timeStep << "\n";
+			for (int i = 0; i < getNumberOfMassPoints(); i++) {
+				Masspoint m = masspoints.at(i);
+				cout << "Point" << i << ": Pos=" << m.mp_position << " | Velocity= " << m.mp_velocity << "\n";
+			}		
+			first = false;
+		}
 		break;
 	case 1:
 		//TODO LEAPFROG
 		break;
 	case 2:
-		//TODO MIDPOINT
+		midpointIntegrate(timeStep);
+
+
+
+		if (first && m_iTestCase==1) {
+			cout << "System after first timestep " << timeStep << "\n";
+			for (int i = 0; i < getNumberOfMassPoints(); i++) {
+				Masspoint m = masspoints.at(i);
+				cout << "Point" << i << ": Pos=" << m.mp_position << " | Velocity= " << m.mp_velocity << "\n";
+			}
+			first = false;
+		}
 		break;
 	default:
 		break;
 	}
+
+	
 }
 
 Vec3 MassSpringSystemSimulator::ComputeForce(Spring s)
@@ -235,7 +301,6 @@ Vec3 MassSpringSystemSimulator::ComputeForce(Spring s)
 	n = n / norm;
 
 	float F = -m_fStiffness * (abs(PointDistance(s.s_mp1.mp_position, s.s_mp2.mp_position) - s.s_initLength));
-
 	return n*F;
 }
 
@@ -254,13 +319,34 @@ void MassSpringSystemSimulator::ApplyForce(Spring s, Vec3 F) {
 	masspoints.at(s.smp2index) = m2;
 }
 
+void MassSpringSystemSimulator::ApplyGravity() {
+	for (int i = 0; i < getNumberOfMassPoints(); i++) {
+		Masspoint m = masspoints.at(i);
+		m.mp_force = m.mp_force + (m.mp_mass * Vec3(0, -10, 0));
+		masspoints.at(i) = m;
+	}
+}
+
+void MassSpringSystemSimulator::GroundCheck() {
+	for (int i = 0; i < getNumberOfMassPoints(); i++) {
+		Masspoint m = masspoints.at(i);
+		if (m.mp_position.y <= -1) {
+			m.mp_position = Vec3(m.mp_position.x,-1,m.mp_position.z);
+			if (m.mp_velocity.y < 0) {
+				m.mp_velocity = Vec3(m.mp_velocity.x, -m.mp_velocity.y, m.mp_velocity.z);;
+			}
+		}
+		masspoints.at(i) = m;
+	}
+}
+
 void MassSpringSystemSimulator::eulerIntegratePositions(float timeStep) {
 	for (int i = 0; i < getNumberOfMassPoints();i++) {
 		Masspoint m = masspoints.at(i);
 
-		cout << i << " Oldpos:" << m.mp_position.x << " " << m.mp_position.y << " " << m.mp_position.z << "!\n";
+		//cout << i << " Oldpos:" << m.mp_position.x << " " << m.mp_position.y << " " << m.mp_position.z << "!\n";
 		m.mp_position = m.mp_position + (timeStep * m.mp_velocity);
-		cout << i << "Newpos:" << m.mp_position.x << " " << m.mp_position.y << " " << m.mp_position.z << "!\n";
+		//cout << i << "Newpos:" << m.mp_position.x << " " << m.mp_position.y << " " << m.mp_position.z << "!\n";
 
 		masspoints.at(i) = m;
 	}
@@ -277,11 +363,72 @@ void MassSpringSystemSimulator::eulerIntegrateVelocity(float timeStep) {
 		Masspoint m = masspoints.at(i);
 
 		//cout << "OldVelocity:" << m.mp_velocity.x << " " << m.mp_velocity.y << " " << m.mp_velocity.z << "!\n";
-		m.mp_velocity = m.mp_velocity + (timeStep * m.mp_force);
+		m.mp_velocity = m.mp_velocity + (timeStep * (m.mp_force/m.mp_mass));
 		//cout << "NewVelocity:" << m.mp_velocity.x << " " << m.mp_velocity.y << " " << m.mp_velocity.z << "!\n";
 
 		masspoints.at(i) = m;
 	}
+}
+
+void MassSpringSystemSimulator::midpointIntegrate(float timeStep) {
+
+	vector<Masspoint> midpoints;
+
+	for (int i = 0; i < masspoints.size(); i++){
+		midpoints.push_back(masspoints[i]);
+	}
+
+	for (int i = 0; i < getNumberOfMassPoints(); i++) {
+		Masspoint m = masspoints.at(i);
+		m.mp_force = Vec3(0, 0, 0);
+		masspoints.at(i) = m;
+	}
+
+	for (int i = 0; i < getNumberOfSprings(); i++) {
+		Spring s = springs.at(i);
+		s.s_mp1 = masspoints[s.smp1index];
+		s.s_mp2 = masspoints[s.smp2index];
+		Vec3 F = ComputeForce(s);
+		ApplyForce(s, F);
+		springs.at(i) = s;
+	}
+
+	for (int i = 0; i < getNumberOfMassPoints(); i++) {
+		Masspoint m = masspoints.at(i);
+		m.mp_position = m.mp_position + ((timeStep / 2) * m.mp_velocity);
+		m.mp_velocity = m.mp_velocity + ((timeStep / 2) * m.mp_force/ m.mp_mass);
+		midpoints.at(i) = m;
+
+		Masspoint n = masspoints.at(i);
+		n.mp_force = Vec3(0, 0, 0);
+		masspoints.at(i) = n;
+	}
+
+	for (int i = 0; i < getNumberOfSprings(); i++) {
+		Spring s = springs.at(i);
+		s.s_mp1 = midpoints[s.smp1index];
+		s.s_mp2 = midpoints[s.smp2index];
+		Vec3 F = ComputeForce(s);
+		ApplyForce(s, F);
+		springs.at(i) = s;
+	}
+
+	if (m_iGravity) {
+		ApplyGravity();
+	}
+
+	for (int i = 0; i < getNumberOfMassPoints(); i++) {
+		Masspoint m = masspoints.at(i);
+		m.mp_position = m.mp_position + (timeStep * midpoints.at(i).mp_velocity);
+		m.mp_velocity = m.mp_velocity + (timeStep / 2 * m.mp_force/m.mp_mass);
+		//cout << "Point" << i  << ": Force=" << m.mp_force << "| Velocity= " << m.mp_velocity << "\n";
+		masspoints.at(i) = m;
+	}
+
+	if (m_iGround) {
+		GroundCheck();
+	}
+	
 }
 
 
