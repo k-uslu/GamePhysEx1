@@ -44,7 +44,7 @@ int MassSpringSystemSimulator::addMassPoint(Vec3 position, Vec3 Velocity, bool i
 	m.mp_mass = m_fMass;
 
 	masspoints.push_back(m);
-	return 0; // Why return int?
+	return 0;
 }
 
 void MassSpringSystemSimulator::addSpring(int masspoint1, int masspoint2, float initialLength)
@@ -83,8 +83,7 @@ Vec3 MassSpringSystemSimulator::getVelocityOfMassPoint(int index)
 
 void MassSpringSystemSimulator::applyExternalForce(Vec3 force)
 {
-
-	// TO-DO
+	// ???	
 }
 
 // ----------------------- UI Functions ----------------------- //
@@ -215,24 +214,7 @@ void MassSpringSystemSimulator::notifyCaseChanged(int testCase)
 
 void MassSpringSystemSimulator::externalForcesCalculations(float timeElapsed)
 {
-	// apply the mouse deltas to g_vfmovableobjectpos (move along cameras view plane)
-	Point2D mousediff;
-	mousediff.x = m_trackmouse.x - m_oldtrackmouse.x;
-	mousediff.y = m_trackmouse.y - m_oldtrackmouse.y;
-	if (mousediff.x != 0 || mousediff.y != 0)
-	{
-		Mat4 worldviewinv = Mat4(DUC->g_camera.GetWorldMatrix() * DUC->g_camera.GetViewMatrix());
-		worldviewinv = worldviewinv.inverse();
-		Vec3 inputview = Vec3((float)mousediff.x, (float)-mousediff.y, 0);
-		Vec3 inputworld = worldviewinv.transformVectorNormal(inputview);
-		// find a proper scale!
-		float inputscale = 0.001f;
-		inputworld = inputworld * inputscale;
-		m_vfMovableObjectPos = m_vfMovableObjectFinalPos + inputworld;
-	}
-	else {
-		m_vfMovableObjectFinalPos = m_vfMovableObjectPos;
-	}
+	// ???
 }
 
 void MassSpringSystemSimulator::simulateTimestep(float timeStep)
@@ -349,11 +331,7 @@ void MassSpringSystemSimulator::GroundCheck() {
 void MassSpringSystemSimulator::eulerIntegratePositions(float timeStep) {
 	for (int i = 0; i < getNumberOfMassPoints();i++) {
 		Masspoint m = masspoints.at(i);
-
-		//cout << i << " Oldpos:" << m.mp_position.x << " " << m.mp_position.y << " " << m.mp_position.z << "!\n";
 		m.mp_position = m.mp_position + (timeStep * m.mp_velocity);
-		//cout << i << "Newpos:" << m.mp_position.x << " " << m.mp_position.y << " " << m.mp_position.z << "!\n";
-
 		masspoints.at(i) = m;
 	}
 	for (int i = 0; i < getNumberOfSprings();i++) {
@@ -367,11 +345,7 @@ void MassSpringSystemSimulator::eulerIntegratePositions(float timeStep) {
 void MassSpringSystemSimulator::eulerIntegrateVelocity(float timeStep) {
 	for (int i = 0; i < getNumberOfMassPoints(); i++) {
 		Masspoint m = masspoints.at(i);
-
-		//cout << "OldVelocity:" << m.mp_velocity.x << " " << m.mp_velocity.y << " " << m.mp_velocity.z << "!\n";
 		m.mp_velocity = m.mp_velocity + (timeStep * (m.mp_force/m.mp_mass));
-		//cout << "NewVelocity:" << m.mp_velocity.x << " " << m.mp_velocity.y << " " << m.mp_velocity.z << "!\n";
-
 		masspoints.at(i) = m;
 	}
 }
@@ -427,7 +401,6 @@ void MassSpringSystemSimulator::midpointIntegrate(float timeStep) {
 		Masspoint m = masspoints.at(i);
 		m.mp_position = m.mp_position + (timeStep * midpoints.at(i).mp_velocity);
 		m.mp_velocity = m.mp_velocity + (timeStep / 2 * m.mp_force/m.mp_mass);
-		//cout << "Point" << i  << ": Force=" << m.mp_force << "| Velocity= " << m.mp_velocity << "\n";
 		masspoints.at(i) = m;
 	}
 
