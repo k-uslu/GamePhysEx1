@@ -5,7 +5,7 @@ MassSpringSystemSimulator::MassSpringSystemSimulator() {
 	m_fMass = 0;
 	m_fStiffness = 0;
 	m_fDamping = 0;
-	m_iIntegrator = 0;
+	m_iIntegrator = 2;
 	m_iGravity=false;
 	m_iGround=false;
 
@@ -44,7 +44,7 @@ int MassSpringSystemSimulator::addMassPoint(Vec3 position, Vec3 Velocity, bool i
 	m.mp_mass = m_fMass;
 
 	masspoints.push_back(m);
-	return 0;
+	return getNumberOfMassPoints()-1;
 }
 
 void MassSpringSystemSimulator::addSpring(int masspoint1, int masspoint2, float initialLength)
@@ -99,7 +99,7 @@ void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
 	{
 	case 0:break;
 	case 1:
-		TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
+		//TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
 		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP, &m_iGravity, "");
 		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
 		setMass(10);
@@ -110,7 +110,7 @@ void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
 		
 		break;
 	case 2:
-		TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
+		//TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
 		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP , &m_iGravity, "");
 		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
 		setMass(10);
@@ -400,7 +400,7 @@ void MassSpringSystemSimulator::midpointIntegrate(float timeStep) {
 	for (int i = 0; i < getNumberOfMassPoints(); i++) {
 		Masspoint m = masspoints.at(i);
 		m.mp_position = m.mp_position + (timeStep * midpoints.at(i).mp_velocity);
-		m.mp_velocity = m.mp_velocity + (timeStep / 2 * m.mp_force/m.mp_mass);
+		m.mp_velocity = m.mp_velocity + (timeStep * m.mp_force/m.mp_mass);
 		masspoints.at(i) = m;
 	}
 
