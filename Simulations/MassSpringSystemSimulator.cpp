@@ -5,7 +5,7 @@ MassSpringSystemSimulator::MassSpringSystemSimulator() {
 	m_fMass = 0;
 	m_fStiffness = 0;
 	m_fDamping = 0;
-	m_iIntegrator = 2;
+	m_iIntegrator = 0;
 	m_iGravity=false;
 	m_iGround=false;
 
@@ -89,7 +89,7 @@ void MassSpringSystemSimulator::applyExternalForce(Vec3 force)
 // ----------------------- UI Functions ----------------------- //
 
 const char* MassSpringSystemSimulator::getTestCasesStr() {
-	return "Empty, 1.1-Points, Complex, Pyramid";
+	return "Empty, 1.1-(Euler),1.1-(Midpoint), Complex, Pyramid";
 }
 
 void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
@@ -99,7 +99,8 @@ void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
 	{
 	case 0:break;
 	case 1:
-		//TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
+		m_iIntegrator = 0;
+		first = true;
 		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP, &m_iGravity, "");
 		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
 		setMass(10);
@@ -110,7 +111,19 @@ void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
 		
 		break;
 	case 2:
-		//TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
+		m_iIntegrator = 2;
+		first = true;
+		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP, &m_iGravity, "");
+		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
+		setMass(10);
+		setStiffness(40);
+		addMassPoint(Vec3(0, 0, 0), Vec3(-1, 0, 0), false);
+		addMassPoint(Vec3(0, 2, 0), Vec3(1, 0, 0), false);
+		addSpring(0, 1, 1);
+
+		break;
+	case 3:
+		TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
 		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP , &m_iGravity, "");
 		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
 		setMass(10);
@@ -142,7 +155,7 @@ void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
 		addSpring(4, 9, 2);
 		
 		break;
-	case 3:
+	case 4:
 		TwAddVarRW(DUC->g_pTweakBar, "Integration", TW_TYPE_INT32, &m_iIntegrator, "min=0 step=1");
 		TwAddVarRW(DUC->g_pTweakBar, "Gravity", TW_TYPE_BOOLCPP, &m_iGravity, "");
 		TwAddVarRW(DUC->g_pTweakBar, "Ground", TW_TYPE_BOOLCPP, &m_iGround, "");
@@ -198,12 +211,15 @@ void MassSpringSystemSimulator::notifyCaseChanged(int testCase)
 		cout << "Empty !\n";
 		break;
 	case 1:
-		cout << "1.1-Points !\n";
-		break;
-	case 2:
-		cout << "Complex!\n";
+		cout << "1.1-Euler !\n";
 		break;
 	case 3:
+		cout << "Complex!\n";
+		break;
+	case 2:
+		cout << "1.1-Midpoint !\n";
+		break;
+	case 4:
 		cout << "Pyramid !\n";
 		break;
 	default:
@@ -266,7 +282,7 @@ void MassSpringSystemSimulator::simulateTimestep(float timeStep)
 
 
 
-		if (first && m_iTestCase==1) {
+		if (first && m_iTestCase==2) {
 			cout << "System after first timestep " << timeStep << "\n";
 			for (int i = 0; i < getNumberOfMassPoints(); i++) {
 				Masspoint m = masspoints.at(i);
